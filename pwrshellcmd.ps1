@@ -23,7 +23,7 @@ Connect-AzAccount `
 $subscriptionId = Get-AzSubscription -SubscriptionName '<Subscription_Name>'
 Set-AzContext $subscriptionId # Set a default subscription where resoruces will be created.
 
-#Checks for existing Resource Groups and displays on the screen
+#Checks for existing Resource Groups and displays on the screen, saving a copy in CSV
 $ErrorActionPreference =  "Stop"  
 try {
     $rgs =  Get-AzResourceGroup
@@ -46,6 +46,8 @@ catch {
 #### $RGroupLocation = "<Add location name>"
 $RGroupName = "<Add_RG_Name>"
 $RGroupLocation = "<Add_location_name>"
+$RGroupName = "scusRg1BicepDemo"
+$RGroupLocation = "South Central US"
 ### Add/Modify Tags of your Choice
 $ResourceGroupTags = @{
     "Environment" = "TEST";
@@ -57,20 +59,27 @@ $ResourceGroupTags = @{
 }
 
 # Create Resource Group
-New-AzResourceGroup \
-    -Name $RGroupName \
-    -Location $RGroupLocation \
+New-AzResourceGroup `
+    -Name $RGroupName `
+    -Location $RGroupLocation `
     -Tag $ResourceGroupTags
 
 # You can set the default resource group and omit the parameter from the rest of the Azure PowerShell commands in this exercise. Set this default to the resource group created for you in the sandbox environment.
 ## Defines the scope where resource group will exist.
 ### Set-AzDefault -ResourceGroupName $RGGroupName
-Set-AzDefault -ResourceGroupName $RGGroupName
+Set-AzDefault -ResourceGroupName $RGroupName
 ## Undo the action above to remove the default location where resource management actions should be executed.
 ### Clear-AzDefault -ResourceGroup 
 
 # Now you can start your code and reuse the resource group variable in your code when needed.
-New-AzResoruceGroupDeployment -TemplateFile main.bicep 
+New-AzResourceGroupDeployment `
+    -TemplateFile vnet.bicep `
+    -Mode Incremental `
+    -verbose
+    -ResourceGroup $RGGroupName `
+    -TemplateParametersFile ./param.bicepparam `
+
+New-AzResourceGroupDeployment -TemplateFile spoke2stgacc.bicep 
 
 # Creates multiple resoruce groups:
 for ($i =0; $i -lt 10; $i++){
@@ -78,4 +87,5 @@ for ($i =0; $i -lt 10; $i++){
     New-AzResoruceGroupDeployment -TemplateFile main.bicep  -name "modname$i"
 }
 
+# Exports the Resource Groups as a list
 Export-AzResourceGroup -ResourceGroupName $RGGroupName
